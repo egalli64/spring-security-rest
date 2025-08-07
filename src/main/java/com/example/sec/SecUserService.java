@@ -34,8 +34,6 @@ public class SecUserService {
     }
 
     @RolesAllowed("ADMIN")
-//    @Secured("ROLE_ADMIN")
-//    @PreAuthorize("hasRole('ADMIN')")
     public SecUser create(String username, String password, Set<String> roleNames, Set<String> authNames) {
         if (userRepo.existsByUsername(username)) {
             throw new IllegalArgumentException("User already exists: " + username);
@@ -66,7 +64,6 @@ public class SecUserService {
     }
 
     @RolesAllowed("ADMIN")
-//    @PreAuthorize("hasRole('ADMIN')")
     @Transactional(readOnly = true)
     public boolean existsByUsername(String username) {
         return userRepo.existsByUsername(username);
@@ -85,7 +82,6 @@ public class SecUserService {
     }
 
     @RolesAllowed("ADMIN")
-//    @PreAuthorize("hasRole('ADMIN')")
     public boolean updateRoles(String username, Set<String> newRoleNames) {
         Optional<SecUser> userOpt = userRepo.findByUsername(username);
         if (userOpt.isPresent()) {
@@ -106,7 +102,6 @@ public class SecUserService {
     }
 
     @RolesAllowed("ADMIN")
-//    @PreAuthorize("hasRole('ADMIN')")
     public boolean setEnabled(String username, boolean enabled) {
         Optional<SecUser> userOpt = userRepo.findByUsername(username);
         if (userOpt.isPresent()) {
@@ -119,7 +114,6 @@ public class SecUserService {
     }
 
     @RolesAllowed("ADMIN")
-//    @PreAuthorize("hasRole('ADMIN')")
     public boolean delete(String username) {
         Optional<SecUser> userOpt = userRepo.findByUsername(username);
         if (userOpt.isPresent()) {
@@ -130,14 +124,12 @@ public class SecUserService {
     }
 
     @RolesAllowed({ "ADMIN", "USER" })
-//    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @Transactional(readOnly = true)
     public Set<String> getAllUsernames() {
         return userRepo.findAllUsernames();
     }
 
     @RolesAllowed({ "ADMIN", "USER" })
-//    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @Transactional(readOnly = true)
     public long getSize() {
         return userRepo.count();
