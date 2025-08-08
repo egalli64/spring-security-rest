@@ -7,53 +7,66 @@ package com.example.sec;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.expression.WebExpressionAuthorizationManager;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(jsr250Enabled = true, prePostEnabled = true)
 public class SecurityConfig {
     private final SecUserDetailsService svc;
+    private final JwtAuthenticationFilter filter;
 
-    public SecurityConfig(SecUserDetailsService secUserSvc) {
-        this.svc = secUserSvc;
+    public SecurityConfig(SecUserDetailsService svc, JwtAuthenticationFilter filter) {
+        this.svc = svc;
+        this.filter = filter;
+    }
+
+    /**
+     * Used to validate credentials during login
+     */
+    @Bean
+    AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
     }
 
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        // Wrap a SpEL to be used in the access() call
+        // Same SpEL expression as before
         final WebExpressionAuthorizationManager adminWithReportsAccess = new WebExpressionAuthorizationManager(
                 "hasRole('ADMIN') and hasAuthority('VIEW_REPORTS')");
 
-        // Disable HTTP Basic - using form login instead
-        http.httpBasic(httpBasic -> httpBasic.disable())
-                // Enable form login - custom login page
-                .formLogin(form -> form.loginPage("/login").loginProcessingUrl("/do_login")
-                        // redirections after success/failure
-                        .defaultSuccessUrl("/", true).failureUrl("/login?error=true") //
-                        .permitAll())
-                // logout configuration
-                .logout(logout -> logout.logoutUrl("/logout").logoutSuccessUrl("/").permitAll())
-                // use the app-specific UserDetailsService
+        // session-based featured disabled
+        return http.formLogin(form -> form.disable()) // no login form
+                .httpBasic(httpBasic -> httpBasic.disable()) // no HTTP Basic auth
+                .logout(logout -> logout.disable()) // no traditional logout
+                .csrf(csrf -> csrf.disable()) // no CSRF (stateless API)
+
+                // different session management
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+                // no changes
                 .userDetailsService(svc)
-                // Two roles, an authority + public and H2 console
-                .authorizeHttpRequests(auth -> auth.requestMatchers("/", "/public", "/h2-console/**").permitAll() //
+                .authorizeHttpRequests(auth -> auth.requestMatchers("/api/login", "/h2-console/**").permitAll()
                         .requestMatchers("/admin").hasRole("ADMIN") //
                         .requestMatchers("/private").hasRole("USER") //
                         .requestMatchers("/reports").hasAuthority("VIEW_REPORTS") //
                         .requestMatchers("/admin/reports").access(adminWithReportsAccess) //
-                        // require only to be logged - see service for security check
                         .requestMatchers("/users/**").authenticated() //
-                        .anyRequest().denyAll())
-                // Disable Cross-Site Request Forgery for H2
-                .csrf(csrf -> csrf.ignoringRequestMatchers("/h2-console/**"))
-                .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin));
+                        .anyRequest().denyAll()) //
 
-        return http.build();
+                // JWT filter
+                .addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class)
+                // still required by H2 console
+                .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin)) //
+                .build();
     }
 }
