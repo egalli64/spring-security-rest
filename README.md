@@ -2,9 +2,9 @@
 
 ## Branches
 
-- 1.1 - Split from "classic" tutorial
+- 3.1 - Split from "classic" tutorial
 
-## 1.1 - Split from "classic" tutorial
+## 3.1 - Split from "classic" tutorial
 
 - H2 setup
 	- data.sql
