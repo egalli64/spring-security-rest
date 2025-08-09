@@ -48,14 +48,14 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody @Valid LoginRequest loginRequest) {
-        log.debug("login({})", loginRequest.getUsername());
+        log.debug("login({})", loginRequest.username());
 
         try {
             // Step 1: Validate credentials using Spring Security
             Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
+                    new UsernamePasswordAuthenticationToken(loginRequest.username(), loginRequest.password()));
 
-            log.debug("Authentication successful for user: {}", loginRequest.getUsername());
+            log.debug("Authentication successful for user: {}", loginRequest.username());
 
             // Step 2: Extract the principal from the authentication
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
@@ -67,24 +67,24 @@ public class AuthController {
             LoginResponse response = new LoginResponse(jwtToken, userDetails.getUsername(),
                     userDetails.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList());
 
-            log.info("JWT token generated for user: {}", loginRequest.getUsername());
+            log.info("JWT token generated for user: {}", loginRequest.username());
             return ResponseEntity.ok(response);
 
         } catch (BadCredentialsException e) {
-            log.warn("Invalid credentials for user: {}", loginRequest.getUsername());
+            log.warn("Invalid credentials for user: {}", loginRequest.username());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new ErrorResponse("Invalid username or password"));
 
         } catch (DisabledException e) {
-            log.warn("Account disabled for user: {}", loginRequest.getUsername());
+            log.warn("Account disabled for user: {}", loginRequest.username());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorResponse("Account is disabled"));
 
         } catch (LockedException e) {
-            log.warn("Account locked for user: {}", loginRequest.getUsername());
+            log.warn("Account locked for user: {}", loginRequest.username());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorResponse("Account is locked"));
 
         } catch (AuthenticationException e) {
-            log.error("Authentication error for user {}: {}", loginRequest.getUsername(), e.getMessage());
+            log.error("Authentication error for user {}: {}", loginRequest.username(), e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorResponse("Authentication failed"));
         }
     }
