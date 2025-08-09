@@ -30,7 +30,7 @@ public class JwtService {
     /** !!! a proper secret key management system should be used !!! */
     private static final String SECRET_KEY = "404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970";
     /** 1 day in milliseconds */
-    private static final int EXPIRATION_TIME = 86400000; // 24 hours in milliseconds
+    private static final int EXPIRATION_TIME = 86_400_000;
 
     private final Key key;
 
@@ -65,7 +65,7 @@ public class JwtService {
      * Check if token is expired
      */
     public boolean isTokenExpired(String token) {
-        return expiration(token).before(new Date());
+        return getExpiration(token).before(new Date());
     }
 
     /**
@@ -77,8 +77,12 @@ public class JwtService {
 
     // Helpers
 
-    private Date expiration(String token) {
+    public Date getExpiration(String token) {
         return claim(token, Claims::getExpiration);
+    }
+
+    public long getTimeUntilExpiration(String token) {
+        return getExpiration(token).getTime() - System.currentTimeMillis();
     }
 
     private <T> T claim(String token, Function<Claims, T> claimsResolver) {
