@@ -5,14 +5,5 @@
  */
 package com.example.sec;
 
-public class ErrorResponse {
-    private String error;
-
-    public ErrorResponse(String error) {
-        this.error = error;
-    }
-
-    public String getError() {
-        return error;
-    }
+public record ErrorResponse(String message) {
 }
