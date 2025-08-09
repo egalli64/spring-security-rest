@@ -5,6 +5,8 @@
  */
 package com.example.sec;
 
+import java.util.List;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -17,6 +19,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.expression.WebExpressionAuthorizationManager;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
 
 @Configuration
 @EnableWebSecurity
@@ -44,16 +47,22 @@ public class SecurityConfig {
         final WebExpressionAuthorizationManager adminWithReportsAccess = new WebExpressionAuthorizationManager(
                 "hasRole('ADMIN') and hasAuthority('VIEW_REPORTS')");
 
-        // session-based featured disabled
         return http.formLogin(form -> form.disable()) // no login form
                 .httpBasic(httpBasic -> httpBasic.disable()) // no HTTP Basic auth
                 .logout(logout -> logout.disable()) // no traditional logout
                 .csrf(csrf -> csrf.disable()) // no CSRF (stateless API)
-
-                // different session management
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                // no changes
+                // CORS configuration
+                .cors(cors -> cors.configurationSource(request -> {
+                    CorsConfiguration config = new CorsConfiguration();
+                    config.setAllowedOriginPatterns(List.of("http://localhost:*", "http://127.0.0.1:*"));
+                    config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+                    config.setAllowedHeaders(List.of("*"));
+                    config.setAllowCredentials(true);
+                    return config;
+                }))
+
                 .userDetailsService(svc)
                 .authorizeHttpRequests(auth -> auth.requestMatchers("/api/login", "/h2-console/**").permitAll()
                         .requestMatchers("/admin").hasRole("ADMIN") //
@@ -63,9 +72,7 @@ public class SecurityConfig {
                         .requestMatchers("/users/**").authenticated() //
                         .anyRequest().denyAll()) //
 
-                // JWT filter
                 .addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class)
-                // still required by H2 console
                 .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin)) //
                 .build();
     }
