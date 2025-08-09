@@ -5,6 +5,8 @@
  */
 package com.example.sec;
 
+import java.util.Date;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.http.HttpStatus;
@@ -18,11 +20,13 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 /**
@@ -87,5 +91,22 @@ public class AuthController {
             log.error("Authentication error for user {}: {}", loginRequest.getUsername(), e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorResponse("Authentication failed"));
         }
+    }
+    
+    @GetMapping("/token/status")
+    public ResponseEntity<TokenStatusResponse> getTokenStatus(HttpServletRequest request) {
+        String header = request.getHeader("Authorization");
+        if (header != null && header.startsWith("Bearer ")) {
+            String token = header.substring(7);
+            try {
+                Date expiration = jwtService.getExpiration(token);
+                long timeLeft = jwtService.getTimeUntilExpiration(token);
+                return ResponseEntity.ok(new TokenStatusResponse(expiration, timeLeft, timeLeft > 0));
+            } catch (Exception e) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new TokenStatusResponse(null, 0, false));
+            }
+        }
+        return ResponseEntity.badRequest().build();
     }
 }
