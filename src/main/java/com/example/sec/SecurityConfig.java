@@ -64,12 +64,12 @@ public class SecurityConfig {
                 }))
 
                 .userDetailsService(svc)
-                .authorizeHttpRequests(auth -> auth.requestMatchers("/api/login", "/h2-console/**").permitAll()
-                        .requestMatchers("/admin").hasRole("ADMIN") //
+                .authorizeHttpRequests(auth -> auth.requestMatchers("/api/login", "/*", "/h2-console/**").permitAll() //
+                        .requestMatchers("/api/admin").hasRole("ADMIN") //
                         .requestMatchers("/private").hasRole("USER") //
                         .requestMatchers("/reports").hasAuthority("VIEW_REPORTS") //
                         .requestMatchers("/admin/reports").access(adminWithReportsAccess) //
-                        .requestMatchers("/users/**").authenticated() //
+                        .requestMatchers("/api/token/**", "/users/**").authenticated() //
                         .anyRequest().denyAll()) //
 
                 .addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class)
