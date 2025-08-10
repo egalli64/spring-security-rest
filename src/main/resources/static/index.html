@@ -7,8 +7,28 @@
 <html lang="en">
 <head>
 <title>Spring Security REST Tutorial</title>
+<script type="text/javascript" src="login.js" defer></script>
+<script type="text/javascript" src="commands.js" defer></script>
 </head>
 <body>
     <h1>Welcome to the Spring Security REST Tutorial!</h1>
+
+    <h2>Login</h2>
+    <form id="login">
+        <label>Username: <input type="text" id="username"></label>
+        <!--  -->
+        <label>Password: <input type="password" id="password"></label>
+        <button>Login</button>
+        <span id="message"></span>
+    </form>
+
+    <h2>Admin commands</h2>
+    <div>
+        <button id="loadData">Load Data</button>
+        <button id="checkToken">Check Token Status</button>
+        <button id="logout">Logout</button>
+    </div>
+
+    <div id="result"></div>
 </body>
 </html>
