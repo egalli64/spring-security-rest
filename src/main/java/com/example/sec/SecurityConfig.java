@@ -5,8 +5,6 @@
  */
 package com.example.sec;
 
-import java.util.List;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -14,22 +12,18 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
-import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.access.expression.WebExpressionAuthorizationManager;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.cors.CorsConfiguration;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(jsr250Enabled = true, prePostEnabled = true)
 public class SecurityConfig {
-    private final SecUserDetailsService svc;
+    private final OAuth2AuthenticationSuccessHandler handler;
     private final JwtAuthenticationFilter filter;
 
-    public SecurityConfig(SecUserDetailsService svc, JwtAuthenticationFilter filter) {
-        this.svc = svc;
+    public SecurityConfig(OAuth2AuthenticationSuccessHandler handler, JwtAuthenticationFilter filter) {
+        this.handler = handler;
         this.filter = filter;
     }
 
@@ -43,37 +37,11 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        // Same SpEL expression as before
-        final WebExpressionAuthorizationManager adminWithReportsAccess = new WebExpressionAuthorizationManager(
-                "hasRole('ADMIN') and hasAuthority('VIEW_REPORTS')");
-
-        return http.formLogin(form -> form.disable()) // no login form
-                .httpBasic(httpBasic -> httpBasic.disable()) // no HTTP Basic auth
-                .logout(logout -> logout.disable()) // no traditional logout
-                .csrf(csrf -> csrf.disable()) // no CSRF (stateless API)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-
-                // CORS configuration
-                .cors(cors -> cors.configurationSource(request -> {
-                    CorsConfiguration config = new CorsConfiguration();
-                    config.setAllowedOriginPatterns(List.of("http://localhost:*", "http://127.0.0.1:*"));
-                    config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-                    config.setAllowedHeaders(List.of("*"));
-                    config.setAllowCredentials(true);
-                    return config;
-                }))
-
-                .userDetailsService(svc)
-                .authorizeHttpRequests(auth -> auth.requestMatchers("/api/login", "/*", "/h2-console/**").permitAll() //
-                        .requestMatchers("/api/admin").hasRole("ADMIN") //
-                        .requestMatchers("/private").hasRole("USER") //
-                        .requestMatchers("/reports").hasAuthority("VIEW_REPORTS") //
-                        .requestMatchers("/admin/reports").access(adminWithReportsAccess) //
-                        .requestMatchers("/api/token/**", "/users/**").authenticated() //
-                        .anyRequest().denyAll()) //
-
-                .addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class)
-                .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin)) //
-                .build();
+        return http.csrf(csrf -> csrf.disable()) //
+                .authorizeHttpRequests(auth -> auth.requestMatchers("/api/public/**").permitAll() //
+                        .anyRequest().authenticated())
+                .oauth2Login(oauth2 -> oauth2.successHandler(handler))
+                // keep the existing JWT configuration
+                .addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class).build();
     }
 }
